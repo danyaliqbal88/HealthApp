@@ -102,84 +102,71 @@ var app = {
         // set up a listener to listen for newlines
         // and display any new data that's come in since
         // the last newline:
+        app.createGraph();
         bluetoothSerial.subscribe('\n', function (data) {
-            app.clear();
-            app.display(data);
-
-            var n = 40,
-                random = data;
-
-            function chart(domain, interpolation, tick) {
-              var data = d3.range(n).map(random);
-
-              var margin = {top: 6, right: 0, bottom: 6, left: 40},
-                  width = 960 - margin.right,
-                  height = 120 - margin.top - margin.bottom;
-
-              var x = d3.scale.linear()
-                  .domain(domain)
-                  .range([0, width]);
-
-              var y = d3.scale.linear()
-                  .domain([-1, 1])
-                  .range([height, 0]);
-
-              var line = d3.svg.line()
-                  .interpolate(interpolation)
-                  .x(function(d, i) { return x(i); })
-                  .y(function(d, i) { return y(d); });
-
-              var svg = d3.select("body").append("p").append("svg")
-                  .attr("width", width + margin.left + margin.right)
-                  .attr("height", height + margin.top + margin.bottom)
-                  .style("margin-left", -margin.left + "px")
-                .append("g")
-                  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-              svg.append("defs").append("clipPath")
-                  .attr("id", "clip")
-                .append("rect")
-                  .attr("width", width)
-                  .attr("height", height);
-
-              svg.append("g")
-                  .attr("class", "y axis")
-                  .call(d3.svg.axis().scale(y).ticks(5).orient("left"));
-
-              var path = svg.append("g")
-                  .attr("clip-path", "url(#clip)")
-                .append("path")
-                  .datum(data)
-                  .attr("class", "line")
-                  .attr("d", line);
-
-              tick(path, line, data, x);
-            }
-
-            var transition = d3.select({}).transition()
-                .duration(750)
-                .ease("linear");
-
-            chart([1, n - 2], "basis", function tick(path, line, data, x) {
-              transition = transition.each(function() {
-
-                // push a new data point onto the back
-                data.push(random());
-
-                // redraw the line, and then slide it to the left, and repeat indefinitely
-                path
-                    .attr("d", line)
-                    .attr("transform", null)
-                  .transition()
-                    .attr("transform", "translate(" + x(0) + ")");
-
-                // pop the old data point off the front
-                data.shift();
-
-              }).transition().each("start", function() { tick(path, line, data, x); });
-            });
+            //app.clear();
+            //app.display(data);
         });
     },
+
+    createGraph: function(){
+      var n = 40,
+          random = d3.randomNormal(0, .2),
+          data = d3.range(n).map(random);
+      var svg = d3.select("#lineChart"),
+          margin = {top: 20, right: 20, bottom: 20, left: 40},
+          width = +svg.attr("width") - margin.left - margin.right,
+          height = +svg.attr("height") - margin.top - margin.bottom,
+          g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      var x = d3.scaleLinear()
+          .domain([0, n - 1])
+          .range([0, width]);
+      var y = d3.scaleLinear()
+          .domain([-1, 1])
+          .range([height, 0]);
+      var line = d3.line()
+          .x(function(d, i) { return x(i); })
+          .y(function(d, i) { return y(d); });
+
+      g.append("defs").append("clipPath")
+          .attr("id", "clip")
+        .append("rect")
+          .attr("width", width)
+          .attr("height", height);
+      g.append("g")
+          .attr("class", "axis axis--x")
+          .attr("transform", "translate(0," + y(0) + ")")
+          .call(d3.axisBottom(x));
+      g.append("g")
+          .attr("class", "axis axis--y")
+          .call(d3.axisLeft(y));
+      g.append("g")
+          .attr("clip-path", "url(#clip)")
+        .append("path")
+          .datum(data)
+          .attr("class", "line")
+        .transition()
+          .duration(500)
+          .ease(d3.easeLinear)
+          .on("start", tick);
+
+      function tick() {
+        // Push a new data point onto the back.
+        data.push(random());
+        // Redraw the line.
+        d3.select(this)
+            .attr("d", line)
+            .attr("transform", null);
+        // Slide it to the left.
+        d3.active(this)
+            .attr("transform", "translate(" + x(-1) + ",0)")
+          .transition()
+            .on("start", tick);
+        // Pop the old data point off the front.
+        data.shift();
+      }
+    },      
+
 
 /*
     unsubscribes from any Bluetooth serial listener and changes the button:
