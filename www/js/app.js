@@ -68,6 +68,15 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services'])
         }
       }
     })
+     .state('tab.bluetooth', {
+      url: '/bluetooth',
+      views: {
+        'tab-bluetooth': {
+          templateUrl: 'templates/tab-bluetooth.html',
+          controller: 'BluetoothCtrl'
+        }
+      }
+    })
 
   .state('tab.account', {
     url: '/account',
